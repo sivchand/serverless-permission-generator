@@ -44,6 +44,10 @@ const validate = (values) => {
     errors.isSnsRequired = ' Please add a topic';
   }
 
+  if (values.isSsmRequired === true && values.ssmParamArray.length === 0) {
+    errors.isSsmRequired = ' Please add a SSM parameter with leading slash';
+  }
+
   return errors;
 };
 

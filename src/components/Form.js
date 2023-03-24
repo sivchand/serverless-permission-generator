@@ -55,6 +55,7 @@ export default function Form({ setPolicy }) {
           isDynamoDbRequired: false,
           isSsmRequired: false,
           isEsmEnabled: false,
+          ssmParamArray: [],
           s3Array: [],
           dynamoDbArray: [],
           sqsArray: [],
@@ -120,6 +121,18 @@ export default function Form({ setPolicy }) {
                   <Field component={TextField} name="stage" InputLabelProps={{ shrink: false }} fullWidth />
                 </Grid>
               </Grid>
+
+              <Grid container direction="row" justify="center" alignItems="center" spacing={1}>
+                <Grid item xs={8}>
+                  <Typography variant="subtitle1" className={classes.fieldTitle}>
+                    Deployment Bucket
+                  </Typography>
+                </Grid>
+                <Grid item xs>
+                  <Field component={TextField} name="deploymentBucket" InputLabelProps={{ shrink: false }} fullWidth />
+                </Grid>
+              </Grid>
+
             </Box>
 
             {/* Second Part */}
@@ -174,6 +187,21 @@ export default function Form({ setPolicy }) {
                     inputProps={{ 'aria-label': 'parameter store access checkbox' }}
                   />
                 </Grid>
+                <Grid item xs={12}>
+                  <ResourcesArray
+                    values={values}
+                    resourceName="isSsmRequired"
+                    arrayName="ssmParamArray"
+                    resourceAddLabel="Parameter with path"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  {errors.isSsmRequired && (
+                    <>
+                      <FormHelperText className={classes.helperText}>{errors.isSsmRequired}</FormHelperText>
+                    </>
+                  )}
+                </Grid>
               </Grid>
 
               <Grid container direction="row" justify="center" alignItems="center" spacing={1}>
@@ -217,11 +245,11 @@ export default function Form({ setPolicy }) {
                 </Grid>
 
                 <Grid item xs={12}>
-                {errors.isS3Required && (
-                  <>
-                    <FormHelperText className={classes.helperText}>{errors.isS3Required}</FormHelperText>
-                  </>
-                )}
+                  {errors.isS3Required && (
+                    <>
+                      <FormHelperText className={classes.helperText}>{errors.isS3Required}</FormHelperText>
+                    </>
+                  )}
                 </Grid>
               </Grid>
 
@@ -249,11 +277,11 @@ export default function Form({ setPolicy }) {
                   />
                 </Grid>
 
-                
+
                 <Grid item xs={12}>
-                {errors.isDynamoDbRequired && (
-                  <FormHelperText className={classes.helperText}>{errors.isDynamoDbRequired}</FormHelperText>
-                )}
+                  {errors.isDynamoDbRequired && (
+                    <FormHelperText className={classes.helperText}>{errors.isDynamoDbRequired}</FormHelperText>
+                  )}
                 </Grid>
               </Grid>
 
@@ -281,11 +309,11 @@ export default function Form({ setPolicy }) {
                   />
                 </Grid>
 
-                
+
                 <Grid item xs={12}>
-                {errors.isSnsRequired && (
-                  <FormHelperText className={classes.helperText}>{errors.isSnsRequired}</FormHelperText>
-                )}
+                  {errors.isSnsRequired && (
+                    <FormHelperText className={classes.helperText}>{errors.isSnsRequired}</FormHelperText>
+                  )}
                 </Grid>
               </Grid>
 
@@ -314,9 +342,9 @@ export default function Form({ setPolicy }) {
                 </Grid>
 
                 <Grid item xs={12}>
-                {errors.isAlbRequired && (
-                  <FormHelperText className={classes.helperText}>{errors.isAlbRequired}</FormHelperText>
-                )}
+                  {errors.isAlbRequired && (
+                    <FormHelperText className={classes.helperText}>{errors.isAlbRequired}</FormHelperText>
+                  )}
                 </Grid>
               </Grid>
 
@@ -344,10 +372,10 @@ export default function Form({ setPolicy }) {
                   />
                 </Grid>
 
-                <Grid item xs ={12}>
-                {errors.isKinesisRequired && (
-                  <FormHelperText className={classes.helperText}>{errors.isKinesisRequired}</FormHelperText>
-                )}
+                <Grid item xs={12}>
+                  {errors.isKinesisRequired && (
+                    <FormHelperText className={classes.helperText}>{errors.isKinesisRequired}</FormHelperText>
+                  )}
                 </Grid>
               </Grid>
 
@@ -375,7 +403,7 @@ export default function Form({ setPolicy }) {
                   />
                 </Grid>
 
-                <Grid item xs ={12}>
+                <Grid item xs={12}>
                   {errors.isSqsRequired && (
                     <FormHelperText className={classes.helperText}>{errors.isSqsRequired}</FormHelperText>
                   )}
@@ -401,7 +429,7 @@ export default function Form({ setPolicy }) {
                   <Grid item xs={6}>
                     <Typography variant="subtitle1" className={classes.fieldTitle}>
                       Allow Route53
-                  </Typography>
+                    </Typography>
                   </Grid>
                   <Grid item xs>
                     <Field
@@ -445,11 +473,11 @@ export default function Form({ setPolicy }) {
                 </Grid>
 
                 <Grid item xs={12}>
-                {errors.isWarmUpPluginRequired && (
-                  <>
-                    <FormHelperText className={classes.helperText}>{errors.isWarmUpPluginRequired}</FormHelperText>
-                  </>
-                )}
+                  {errors.isWarmUpPluginRequired && (
+                    <>
+                      <FormHelperText className={classes.helperText}>{errors.isWarmUpPluginRequired}</FormHelperText>
+                    </>
+                  )}
                 </Grid>
               </Grid>
 

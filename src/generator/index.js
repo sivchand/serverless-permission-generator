@@ -70,30 +70,56 @@ export const albGenerator = (albs) => {
 
 // TODO: fix all access
 // sg attach and VPC attach to lambda
-export const sgGenerator = (sGroups) => {
-  return {
-    Effect: 'Allow',
-    Action: [
-      'ec2:AuthorizeSecurityGroupEgress',
-      'ec2:AuthorizeSecurityGroupIngress',
-      'ec2:CreateSecurityGroup',
-      'ec2:DeleteSecurityGroup',
-      'ec2:DescribeSecurityGroups',
-      'ec2:DescribeNetworkInterfaces',
-      'ec2:DescribeSubnets',
-      'ec2:DescribeVpcs',
-      'ec2:DescribeDhcpOptions',
-      'ec2:RevokeSecurityGroupEgress',
-      'ec2:RevokeSecurityGroupIngress',
-      'ec2:CreateNetworkInterfacePermission',
-      'ec2:CreateNetworkInterface',
-      'ec2:DeleteNetworkInterfacePermission',
-      'ec2:DeleteNetworkInterface',
-      'ec2:createTags',
-      'ec2:deleteTags',
-    ],
-    Resource: ['*'],
-  };
+export const sgGenerator = (projectName, stage) => {
+  return [
+    {
+      Effect: 'Allow',
+      Action: [
+        'ec2:CreateTags',
+        'ec2:DescribeSecurityGroups',
+        'ec2:DescribeNetworkInterfaces',
+        'ec2:DescribeSubnets',
+        'ec2:DescribeVpcs',
+        'ec2:DescribeDhcpOptions',
+      ],
+      Resource: ['*']
+    },
+    {
+      Effect: 'Allow',
+      Action: [
+        'ec2:AuthorizeSecurityGroupEgress',
+        'ec2:RevokeSecurityGroupEgress',
+        'ec2:AuthorizeSecurityGroupIngress',
+        'ec2:RevokeSecurityGroupIngress',
+        'ec2:DeleteTags',
+        'ec2:DeleteSecurityGroup',
+        'ec2:CreateNetworkInterfacePermission',
+        'ec2:DeleteNetworkInterface',
+        'ec2:DeleteNetworkInterfacePermission'
+      ],
+      Resource: ['*'],
+      Condition: {
+        'ForAllValues:StringEquals': {
+          'ec2:ResourceTag/ServiceName': projectName,
+          'ec2:ResourceTag/Stage': stage
+        }
+      }
+    },
+    {
+      Effect: 'Allow',
+      Action: [
+        'ec2:CreateSecurityGroup',
+        'ec2:CreateNetworkInterface'
+      ],
+      Resource: ['*'],
+      Condition: {
+        'ForAllValues:StringEquals': {
+          'ec2:RequestTag/ServiceName': projectName,
+          'ec2:RequestTag/Stage': stage
+        }
+      }
+    }
+  ];
 };
 
 export const dynamoDBGenerator = (dbs, account) => {
@@ -190,26 +216,31 @@ export const warmupPluginGenerator = (region, account, ruleNames) => {
 };
 
 // parameter store access
-export const ssmGenerator = () => {
-  return {
-    Effect: 'Allow',
-    Action: [
-      'ssm:DescribeParameters',
-      'ssm:GetParameter',
-      'ssm:GetParameters',
-      'ssm:GetParametersByPath',
-      'kms:Decrypt',
-    ],
-    Resource: ['*'],
-  };
+export const ssmGenerator = (region, account, ssmParamNames) => {
+  return [
+    {
+      Effect: 'Allow',
+      Action: ['ssm:DescribeParameters'],
+      Resource: '*'
+    },
+    {
+      Effect: 'Allow',
+      Action: [
+        'ssm:GetParameter',
+        'ssm:GetParameters',
+        'ssm:GetParametersByPath'
+      ],
+      Resource: ssmParamNames.map((ssmParam) => `arn:aws:ssm:${region}:${account}:parameter${ssmParam}`),
+    }];
 };
 
 // event source mapping permission
-export const esmGenerator = () => {
+export const esmGenerator = (region, accountId, projectName, stage) => {
   return {
     Effect: 'Allow',
     Action: "lambda:CreateEventSourceMapping",
     Resource: '*',
+    Condition: { StringLike: { "lambda:FunctionArn": `arn:aws:lambda:${region}:${accountId}:function:${projectName}-${stage}-*` } }
   };
 };
 
@@ -218,6 +249,7 @@ const generator = ({
   accountId,
   stage,
   region,
+  deploymentBucket,
   isS3Required,
   s3Array,
   isSnsRequired,
@@ -233,6 +265,7 @@ const generator = ({
   isDynamoDbRequired,
   dynamoDbArray,
   isSsmRequired,
+  ssmParamArray,
   isEsmEnabled,
   isDomainManagerRequired,
   isDomainManagerRoute53Required,
@@ -261,9 +294,9 @@ const generator = ({
       {
         Effect: 'Allow',
         Action: ['lambda:Get*', 'lambda:List*', 'lambda:CreateFunction'],
-        Resource: ['*'],
+        Resource: [`arn:aws:lambda:${region}:${accountId}:function:${projectName}-${stage}-*`],
       },
-      {
+      !deploymentBucket && {
         Effect: 'Allow',
         Action: [
           's3:GetBucketLocation',
@@ -280,10 +313,15 @@ const generator = ({
         ],
         Resource: [`arn:aws:s3:::${projectName}*serverlessdeploy*`],
       },
-      {
+      !deploymentBucket && {
         Effect: 'Allow',
         Action: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject'],
         Resource: [`arn:aws:s3:::${projectName}*serverlessdeploy*`],
+      },
+      deploymentBucket && {
+        Effect: 'Allow',
+        Action: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject'],
+        Resource: [`arn:aws:s3:::${deploymentBucket}/*`]
       },
       {
         Effect: 'Allow',
@@ -305,23 +343,23 @@ const generator = ({
       },
       {
         Action: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:DeleteLogGroup'],
-        Resource: [`arn:aws:logs:${region}:${accountId}:*`],
+        Resource: [`arn:aws:logs:${region}:${accountId}:log-group:/aws/lambda/${projectName}-${stage}*:log-stream:*`, `arn:aws:logs:${region}:${accountId}:log-group:/aws/lambda/${projectName}-${stage}*`],
         Effect: 'Allow',
       },
       {
         Action: ['logs:PutLogEvents'],
-        Resource: [`arn:aws:logs:${region}:${accountId}:*`],
+        Resource: [`arn:aws:logs:${region}:${accountId}:log-group:/aws/lambda/${projectName}-${stage}*:log-stream:*`],
         Effect: 'Allow',
       },
       {
         Effect: 'Allow',
         Action: ['logs:DescribeLogStreams', 'logs:DescribeLogGroups', 'logs:FilterLogEvents'],
-        Resource: ['*'],
+        Resource: [`arn:aws:logs:${region}:${accountId}:log-group:/aws/lambda/${projectName}-${stage}*`],
       },
       {
         Effect: 'Allow',
         Action: ['events:Put*', 'events:Remove*', 'events:Delete*'],
-        Resource: [`arn:aws:events:${region}:${accountId}:rule/${projectName}-${stage}-${region}`],
+        Resource: [`arn:aws:events:${region}:${accountId}:rule/${projectName}-${stage}-*`],
       },
       {
         Effect: 'Allow',
@@ -332,6 +370,9 @@ const generator = ({
         Effect: 'Allow',
         Action: ['iam:PassRole'],
         Resource: [`arn:aws:iam::${accountId}:role/*`],
+        Condition: {
+          StringEquals: { "iam:PassedToService": "lambda.amazonaws.com" }
+        }
       },
       {
         Effect: 'Allow',
@@ -341,13 +382,13 @@ const generator = ({
       isS3Required && s3Generator(s3Array),
       isSnsRequired && snsGenerator(snsArray, region, accountId),
       isApiGWRequired && apiGWGenerator(),
-      isSgRequired && sgGenerator(),
+      isSgRequired && sgGenerator(projectName, stage),
       isAlbRequired && albGenerator(albArray),
       isSqsRequired && sqsGenerator(sqsArray, region, accountId),
       isKinesisRequired && kinesisGenerator(kinesisArray),
       isDynamoDbRequired && dynamoDBGenerator(dynamoDbArray, accountId),
-      isSsmRequired && ssmGenerator(),
-      isEsmEnabled && esmGenerator(),
+      isSsmRequired && ssmGenerator(region, accountId, ssmParamArray),
+      isEsmEnabled && esmGenerator(region, accountId, projectName, stage),
       isDomainManagerRequired && domainManagerGenerator(region, accountId, isDomainManagerRoute53Required),
       isWarmUpPluginRequired && warmupPluginGenerator(region, accountId, warmUpPluginRuleArray),
     ]
